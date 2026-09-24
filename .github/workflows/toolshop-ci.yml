@@ -52,8 +52,8 @@ jobs:
       - name: Install Playwright Chromium (with system deps)
         run: python -m playwright install chromium --with-deps
 
-      - name: Run UI and mixed tests
-        run: pytest -m "ui or mixed" -v --reruns 2 --reruns-delay 5
+      - name: Run UI and mixed tests (headed via xvfb)
+        run: xvfb-run --auto-servernum pytest -m "ui or mixed" -v --headed --reruns 2 --reruns-delay 5
 
       - name: Upload debug artifacts
         if: failure()
