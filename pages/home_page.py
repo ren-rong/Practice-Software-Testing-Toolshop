@@ -62,8 +62,16 @@ class HomePage:
         self.page.locator('[data-test="add-to-cart"]').wait_for(timeout=15000)
 
     def click_login(self):
-        """点击导航栏登录按钮"""
-        self.page.click('[data-test="nav-login"]')
+        """点击导航栏 Sign in 链接（Angular 客户端路由，不整页加载 /auth/login）"""
+        self.page.click('[data-test="nav-sign-in"]')
+        # 等待登录表单开始渲染
+        self.page.locator("input[type='email'], input[formcontrolname='email']").wait_for(
+            timeout=15000)
+
+    def click_cart(self):
+        """点击导航栏购物车入口（加购后出现，Angular 客户端路由到 /checkout）"""
+        self.page.locator('[data-test="nav-cart"]').wait_for(timeout=10000)
+        self.page.click('[data-test="nav-cart"]')
 
     def get_page_title(self):
         """获取页面标题"""

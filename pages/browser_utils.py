@@ -41,7 +41,7 @@ def is_challenge_page(page) -> bool:
     return False
 
 
-def wait_for_verification(page, timeout: int = 60):
+def wait_for_verification(page, timeout: int = 30):
     """
     若当前是 Cloudflare 验证页，等待其自动完成验证后返回。
 
