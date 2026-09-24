@@ -1,0 +1,38 @@
+name: CI Diagnostics (temporary)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest-playwright==0.5.0
+          python -m playwright install chromium --with-deps
+
+      - name: curl-level checks
+        run: |
+          echo "===== HEAD/GET front page ====="
+          curl -sSL -D - -o /tmp/index.html --max-time 30 https://practicesoftwaretesting.com/ | head -40 || true
+          echo "===== index.html (first 60 lines) ====="
+          head -60 /tmp/index.html || true
+          echo "===== JS bundles referenced ====="
+          grep -oE 'src="[^"]+\.js[^"]*"' /tmp/index.html | head -10 || true
+          echo "===== API from runner ====="
+          curl -sS --max-time 30 "https://api.practicesoftwaretesting.com/products?per_page=1" | head -c 400 || true
+          echo ""
+
+      - name: Playwright render checks
+        run: python scripts/ci_diag.py
