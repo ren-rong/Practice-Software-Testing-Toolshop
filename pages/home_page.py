@@ -18,13 +18,35 @@ class HomePage:
         """打开首页并等待真实商品卡片渲染完成"""
         # demo 站偶发加载慢，load 事件可能超时；DOM ready 后靠等卡片兜底更稳
         self.page.goto(self.base_url, wait_until="domcontentloaded", timeout=60000)
+        self._wait_for_products(timeout=30000)
+
+    def _wait_for_products(self, timeout: int = 30000):
+        """
+        等待真实商品卡片出现。
+        若命中 Cloudflare 托管质询（"Just a moment..."），等待其 JS 在页面内
+        自动完成质询并加载真实内容；仍失败则 reload 一次再等。
+        """
         try:
-            self.product_cards.first.wait_for(timeout=30000)
+            self.product_cards.first.wait_for(timeout=timeout)
+            return
         except Exception:
-            # 兜底：极端情况下边缘仍可能下发 Cloudflare 挑战页，reload 一次再等
-            if "Just a moment" in self.page.title():
-                self.page.reload(wait_until="domcontentloaded", timeout=60000)
-            self.product_cards.first.wait_for(timeout=30000)
+            pass
+
+        # Cloudflare 挑战页的 JS 会在当前页面内自动完成质询并重载为真实站点
+        if "Just a moment" in self.page.title():
+            try:
+                self.page.wait_for_function(
+                    """() => !document.title.includes('Just a moment')
+                           && document.querySelectorAll('a.card[data-test^="product-"]').length > 0""",
+                    timeout=45000,
+                )
+                return
+            except Exception:
+                pass
+
+        # 最后兜底：reload 一次再等
+        self.page.reload(wait_until="domcontentloaded", timeout=60000)
+        self.product_cards.first.wait_for(timeout=timeout)
 
     def search(self, keyword: str):
         """在首页搜索框输入关键词并搜索，等待搜索结果真正刷新完成"""
