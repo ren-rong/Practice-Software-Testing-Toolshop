@@ -1,6 +1,8 @@
 """登录页 PO：/auth/login。"""
 import re
 
+from pages.browser_utils import wait_for_verification
+
 
 class LoginPage:
     def __init__(self, page, base_url: str):
@@ -15,6 +17,8 @@ class LoginPage:
 
     def load(self):
         self.page.goto(f"{self.base_url}/auth/login", wait_until="domcontentloaded", timeout=60000)
+        # 登录页可能命中 Cloudflare 验证页，先等其自动通过
+        wait_for_verification(self.page)
         return self
 
     def open(self):
@@ -22,6 +26,7 @@ class LoginPage:
         return self.load()
 
     def login(self, email: str, password: str):
+        wait_for_verification(self.page)
         self.email_input.fill(email)
         self.password_input.fill(password)
         self.login_button.click()

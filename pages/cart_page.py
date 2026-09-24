@@ -1,5 +1,7 @@
 from playwright.sync_api import Page
 
+from pages.browser_utils import wait_for_verification
+
 
 class CartPage:
     """购物车页页面对象"""
@@ -14,6 +16,8 @@ class CartPage:
         """打开购物车页"""
         self.page.goto(f"{self.base_url}/checkout",
                        wait_until="domcontentloaded", timeout=60000)
+        # 购物车页可能命中 Cloudflare 验证页，先等其自动通过
+        wait_for_verification(self.page)
 
     def get_items_count(self) -> int:
         """获取购物车商品行数（站点用 table tbody tr 展示商品）"""
@@ -30,6 +34,8 @@ class CartPage:
 
     def expect_cart_has_items(self, min_count: int = 1):
         """断言购物车中至少有指定数量的商品"""
+        # 兜底：数据加载期间若被下发验证页，先等其自动通过
+        wait_for_verification(self.page)
         # CI 数据中心网络下，Angular 重新引导 + GET /carts/{id} 可能较慢，给足 30s
         try:
             self.item_rows.first.wait_for(timeout=30000)
