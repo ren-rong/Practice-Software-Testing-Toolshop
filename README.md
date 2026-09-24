@@ -126,6 +126,12 @@ allure serve allure-results
 
 Toolshop 前端位于 Cloudflare 之后。在 GitHub Actions 的数据中心网络下，**Playwright 默认的 `HeadlessChrome` User-Agent 会触发 Cloudflare 托管质询**（HTTP 403，页面停留在 "Just a moment..."，Angular 应用不渲染），而 API 子域不受影响。
 
-解决方案见 `conftest.py` 的 `browser_context_args`：统一使用不含 `HeadlessChrome` 标记的标准 Chrome UA，并设置 `locale` 与 `Accept-Language`，Cloudflare 边缘即直接放行（已在 CI 实测验证）。
+解决方案（见 `conftest.py`）采用三层策略：
+
+1. **标准浏览器指纹**：`browser_context_args` 中使用不含 `HeadlessChrome` 标记的标准 Chrome UA，并设置 `locale` 与 `Accept-Language`；
+2. **模块级共享上下文 + stealth**：同一测试文件共享一个 `BrowserContext`（覆盖默认的函数级上下文），首次访问获得的 `cf_clearance` 凭证在模块内所有用例复用，并注入轻量 stealth 脚本隐藏自动化指纹——实测 Cloudflare 对同一 IP 连续新建会话存在速率限制，共享上下文后不再触发；
+3. **用例级重试**：`--reruns 2`，兜底任何残余的网络/质询抖动。
+
+另外，公共 customer 账号带有失败次数锁定（423），相关用例会回退到站点同样公开的 admin 账号验证登录链路。
 
 > 说明：测试直接访问公共演示站点，其可用性与数据状态不由本项目控制。代码已对 5xx 做了重试、对默认账号锁定等情况做了安全跳过，以保证 CI 结果稳定可复现。

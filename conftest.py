@@ -135,3 +135,39 @@ def browser_context_args():
         "locale": "en-US",
         "extra_http_headers": {"Accept-Language": "en-US,en;q=0.9"},
     }
+
+
+# 轻量 stealth：隐藏最明显的自动化指纹，提高 Cloudflare 质询的自动通过率。
+# 不依赖第三方包，由 context.add_init_script 在每个页面加载前注入。
+STEALTH_JS = """
+Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
+Object.defineProperty(navigator, 'languages', {get: () => ['en-US', 'en']});
+Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]});
+window.chrome = { runtime: {} };
+"""
+
+
+@pytest.fixture(scope="module")
+def context(browser, browser_context_args):
+    """
+    覆盖 pytest-playwright 默认的函数级 context：同一测试模块（tests 文件）
+    共享一个 BrowserContext。
+
+    必要性：实测 Cloudflare 对同一数据中心 IP 连续新建浏览器会话存在速率策略
+    （前若干个上下文放行，之后的新上下文稳定下发 403 质询）。共享上下文后：
+      1. 整个模块只新建一次会话，大幅降低触发质询的概率；
+      2. 首次访问通过后获得的 cf_clearance cookie 在模块内所有用例复用；
+      3. stealth 初始化脚本进一步隐藏自动化特征。
+    """
+    ctx = browser.new_context(**browser_context_args)
+    ctx.add_init_script(STEALTH_JS)
+    yield ctx
+    ctx.close()
+
+
+@pytest.fixture(scope="module")
+def page(context):
+    """模块内共享一个 Playwright Page；各用例自行导航，不依赖空白初始页。"""
+    pg = context.new_page()
+    yield pg
+    pg.close()

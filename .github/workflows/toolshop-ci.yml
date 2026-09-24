@@ -53,13 +53,9 @@ jobs:
         run: python -m playwright install chromium --with-deps
 
       - name: Run UI and mixed tests
-        run: >
-          pytest -m "ui or mixed" -v
-          --reruns 2 --reruns-delay 5
-          --screenshot only-on-failure
-          --tracing retain-on-failure
+        run: pytest -m "ui or mixed" -v --reruns 2 --reruns-delay 5
 
-      - name: Upload Playwright debug artifacts
+      - name: Upload debug artifacts
         if: failure()
         uses: actions/upload-artifact@v4
         with:
