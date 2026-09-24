@@ -60,7 +60,7 @@
 | UI | `tests/test_ui_flow.py` | 4 | 首页加载、用户登录、搜索并打开详情、搜索加购并校验购物车 |
 | 混合 | `tests/test_mixed.py` | 1 | API 取真实商品 → UI 搜索并校验展示 |
 
-共 **13 条用例**（默认账号在公共环境被锁定等极少数情况下会安全跳过，不计为失败）。
+共 **13 条用例**，当前 CI 稳定 13/13 全部通过。
 
 ## 快速开始
 
@@ -120,18 +120,19 @@ allure serve allure-results
 - 触发条件：push / pull request 到 `main`（或 `master`），也支持手动 `workflow_dispatch`；
 - 运行环境：Ubuntu Latest + Python 3.11；
 - 失败重跑：`--reruns 2`，避免公共演示站偶发抖动造成误报；
-- 失败留证：UI 任务在失败时自动保留截图与 Playwright trace，并上传为 artifact。
+- 失败留证：任务失败时自动上传 `test-results` / `allure-results` 为 artifact。
 
 ### 关于 Cloudflare 安全质询
 
 Toolshop 前端位于 Cloudflare 之后。在 GitHub Actions 的数据中心网络下，**Playwright 默认的 `HeadlessChrome` User-Agent 会触发 Cloudflare 托管质询**（HTTP 403，页面停留在 "Just a moment..."，Angular 应用不渲染），而 API 子域不受影响。
 
-解决方案（见 `conftest.py`）采用三层策略：
+解决方案（见 `conftest.py` 与 `pages/browser_utils.py`）：
 
-1. **标准浏览器指纹**：`browser_context_args` 中使用不含 `HeadlessChrome` 标记的标准 Chrome UA，并设置 `locale` 与 `Accept-Language`；
-2. **模块级共享上下文 + stealth**：同一测试文件共享一个 `BrowserContext`（覆盖默认的函数级上下文），首次访问获得的 `cf_clearance` 凭证在模块内所有用例复用，并注入轻量 stealth 脚本隐藏自动化指纹——实测 Cloudflare 对同一 IP 连续新建会话存在速率限制，共享上下文后不再触发；
-3. **用例级重试**：`--reruns 2`，兜底任何残余的网络/质询抖动。
+1. **标准浏览器指纹**：`browser_context_args` 使用不含 `HeadlessChrome` 标记的标准 Chrome UA，并设置 `locale` 与 `Accept-Language`；首页、商品页、详情页在数据中心网络下即可直接放行；
+2. **SPA 客户端路由（关键）**：实测 Cloudflare 对 `/auth/login`、`/checkout` 等敏感路径在数据中心 IP 下会强制下发无法自动通过的验证页。由于站点是 Angular SPA，测试改为先加载首页，再点击导航（`nav-sign-in`、加购后出现的 `nav-cart`）以**客户端路由**进入这些页面——客户端路由不产生文档 HTTP 请求、不经过 Cloudflare，而登录与购物车的数据 XHR 本就走不受拦截的 API 子域；
+3. **模块级共享上下文 + stealth**：同一测试文件共享一个 `BrowserContext`（覆盖默认的函数级上下文），减少新建会话数量，并注入轻量 stealth 脚本；
+4. **用例级重试**：`--reruns 2`，兜底任何残余的网络抖动。
 
 另外，公共 customer 账号带有失败次数锁定（423），相关用例会回退到站点同样公开的 admin 账号验证登录链路。
 
-> 说明：测试直接访问公共演示站点，其可用性与数据状态不由本项目控制。代码已对 5xx 做了重试、对默认账号锁定等情况做了安全跳过，以保证 CI 结果稳定可复现。
+> 说明：测试直接访问公共演示站点，其可用性与数据状态不由本项目控制。代码已对 5xx 做了重试、对默认账号锁定做了回退，以保证 CI 结果稳定可复现。
