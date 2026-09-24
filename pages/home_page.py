@@ -18,7 +18,13 @@ class HomePage:
         """打开首页并等待真实商品卡片渲染完成"""
         # demo 站偶发加载慢，load 事件可能超时；DOM ready 后靠等卡片兜底更稳
         self.page.goto(self.base_url, wait_until="domcontentloaded", timeout=60000)
-        self.product_cards.first.wait_for(timeout=20000)
+        try:
+            self.product_cards.first.wait_for(timeout=30000)
+        except Exception:
+            # 兜底：极端情况下边缘仍可能下发 Cloudflare 挑战页，reload 一次再等
+            if "Just a moment" in self.page.title():
+                self.page.reload(wait_until="domcontentloaded", timeout=60000)
+            self.product_cards.first.wait_for(timeout=30000)
 
     def search(self, keyword: str):
         """在首页搜索框输入关键词并搜索，等待搜索结果真正刷新完成"""

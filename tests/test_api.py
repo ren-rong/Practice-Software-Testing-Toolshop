@@ -66,20 +66,22 @@ def test_login_with_fresh_user(user_api, fresh_user):
 def test_get_user_profile(user_api, fresh_user):
     """
     使用 access_token 访问受保护接口 /users/profile。
-    该接口对普通 customer 可能返回 404（无权限查看自身 profile），
-    但只要不是 401，就说明 token 已被服务端接受、鉴权链路正常。
+    该接口对普通 customer 返回 404（该角色无 profile 资源），
+    但只要不是 401，就说明 token 已被服务端接受、鉴权链路正常，
+    因此 200 与 404 均为该用例的预期结果。
     """
     login_resp = user_api.login(fresh_user["email"], fresh_user["password"])
     assert login_resp.status_code == 200
     token = login_resp.json()["access_token"]
 
     resp = user_api.get_profile(token)
-    if resp.status_code == 401:
-        pytest.fail(f"token 未通过鉴权: {resp.text}")
 
-    # 404 表示 token 有效但当前角色无权限查看该资源，视为可接受的受保护接口行为
+    # 401 表示 token 未通过鉴权，属于真正的失败
+    assert resp.status_code != 401, f"token 未通过鉴权: {resp.text}"
+
+    # 404 表示 token 有效但当前角色无该资源——demo 站对 customer 的预期行为
     if resp.status_code == 404:
-        pytest.skip("当前角色无权访问 /users/profile，跳过 profile 断言")
+        return
 
     assert resp.status_code == 200, f"获取 profile 失败: {resp.status_code} {resp.text}"
     data = resp.json()

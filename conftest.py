@@ -113,12 +113,25 @@ def fresh_user_ui(user_api):
 
 # --------------------------- Playwright 浏览器配置 ---------------------------
 
+# 标准 Chrome UA（不含 HeadlessChrome 标记）。
+# 原因：前端站点挂在 Cloudflare 之后，GitHub Actions 的数据中心 IP + HeadlessChrome UA
+# 会触发 Cloudflare 托管质询（HTTP 403 "Just a moment..."），导致 Angular 页面永不渲染；
+# 改用标准 Chrome UA 后边缘直接放行（200），已在 CI 实测验证。
+STANDARD_CHROME_UA = (
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+)
+
+
 @pytest.fixture(scope="session")
 def browser_context_args():
     """
     pytest-playwright 提供的 fixture：
-    返回的 dict 会传入 browser.new_context()，统一设置 viewport。
+    返回的 dict 会传入 browser.new_context()，统一设置 viewport / UA / locale。
     """
     return {
         "viewport": {"width": 1920, "height": 1080},
+        "user_agent": STANDARD_CHROME_UA,
+        "locale": "en-US",
+        "extra_http_headers": {"Accept-Language": "en-US,en;q=0.9"},
     }

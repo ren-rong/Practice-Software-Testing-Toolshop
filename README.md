@@ -8,7 +8,7 @@
 
 ## 项目简介
 
-项目围绕 Toolshop 电商核心链路（用户、商品、购物车、下单），分别从接口层、界面层以及接口+界面混合三个维度进行自动化覆盖。每次 push / pull request 都会自动触发 CI，先跑 API 测试，再跑 UI 与混合测试。
+项目围绕 Toolshop 电商核心链路（用户、商品、购物车、下单），分别从接口层、界面层以及接口+界面混合三个维度进行自动化覆盖。每次 push / pull request 都会自动触发 CI，API 测试与 UI/混合测试并行执行。
 
 - Web 前端：<https://practicesoftwaretesting.com>
 - API 后端：<https://api.practicesoftwaretesting.com>
@@ -60,7 +60,7 @@
 | UI | `tests/test_ui_flow.py` | 4 | 首页加载、用户登录、搜索并打开详情、搜索加购并校验购物车 |
 | 混合 | `tests/test_mixed.py` | 1 | API 取真实商品 → UI 搜索并校验展示 |
 
-共 **13 条用例**（个别用例如 profile/默认账号在公共环境状态不可控时会安全跳过，不计为失败）。
+共 **13 条用例**（默认账号在公共环境被锁定等极少数情况下会安全跳过，不计为失败）。
 
 ## 快速开始
 
@@ -110,10 +110,10 @@ allure serve allure-results
 
 ## CI/CD 说明
 
-`.github/workflows/toolshop-ci.yml` 包含两个串行任务：
+`.github/workflows/toolshop-ci.yml` 包含两个并行任务：
 
 1. **api-tests**：安装依赖 → 运行 `pytest -m api`；
-2. **ui-tests（needs api-tests）**：安装依赖 → 安装 Chromium 及系统依赖 → 运行 `pytest -m "ui or mixed"`。
+2. **ui-tests**：安装依赖 → 安装 Chromium 及系统依赖 → 运行 `pytest -m "ui or mixed"`。
 
 特性：
 
@@ -122,4 +122,10 @@ allure serve allure-results
 - 失败重跑：`--reruns 2`，避免公共演示站偶发抖动造成误报；
 - 失败留证：UI 任务在失败时自动保留截图与 Playwright trace，并上传为 artifact。
 
-> 说明：测试直接访问公共演示站点，其可用性与数据状态不由本项目控制。代码已对 5xx 做了重试、对账号锁定 / 无权限等情况做了安全跳过，以保证 CI 结果稳定可复现。
+### 关于 Cloudflare 安全质询
+
+Toolshop 前端位于 Cloudflare 之后。在 GitHub Actions 的数据中心网络下，**Playwright 默认的 `HeadlessChrome` User-Agent 会触发 Cloudflare 托管质询**（HTTP 403，页面停留在 "Just a moment..."，Angular 应用不渲染），而 API 子域不受影响。
+
+解决方案见 `conftest.py` 的 `browser_context_args`：统一使用不含 `HeadlessChrome` 标记的标准 Chrome UA，并设置 `locale` 与 `Accept-Language`，Cloudflare 边缘即直接放行（已在 CI 实测验证）。
+
+> 说明：测试直接访问公共演示站点，其可用性与数据状态不由本项目控制。代码已对 5xx 做了重试、对默认账号锁定等情况做了安全跳过，以保证 CI 结果稳定可复现。
