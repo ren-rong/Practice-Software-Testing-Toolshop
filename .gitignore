@@ -1,0 +1,32 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ---- Virtual environments ----
+venv/
+.venv/
+env/
+
+# ---- Allure generated output ----
+allure-results/
+allure-report/
+
+# ---- Playwright generated output ----
+test-results/
+playwright-report/
+/blob-report/
+/playwright/.cache/
+
+# ---- Logs & local scratch/probe scripts ----
+*.log
+probe_*.py
+probe_*.txt
+
+# ---- Editor / OS ----
+.vscode/
+.DS_Store
+Thumbs.db

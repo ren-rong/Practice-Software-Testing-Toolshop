@@ -1,0 +1,33 @@
+# ============================================
+# Practice Software Testing（Toolshop）测试数据
+# 站点：https://practicesoftwaretesting.com
+# Swagger：https://api.practicesoftwaretesting.com/api/documentation
+# ============================================
+
+# WebUI 根地址
+base_url: "https://practicesoftwaretesting.com"
+# 接口根地址
+api_base_url: "https://api.practicesoftwaretesting.com"
+
+# 站点自带的默认测试账号（公开、可直接用）
+users:
+  customer:
+    email: "customer@practicesoftwaretesting.com"
+    password: "welcome01"
+    # 故意错误密码，用于负向用例
+    wrong_password: "wrong-pwd-123"
+
+# 商品相关
+products:
+  # 搜索关键词：五金店里基本都有钳子
+  search_keyword: "Pliers"
+  # 分类名（用于 /products?category=...）
+  category: "Hand Tools"
+
+# 结账地址（演示用，结账接口会校验地址非空）
+checkout:
+  address: "123 Demo Street"
+  city: "Hangzhou"
+  state: "Zhejiang"
+  country: "China"
+  postcode: "310000"

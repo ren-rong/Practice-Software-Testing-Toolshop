@@ -1,0 +1,14 @@
+# Toolshop UI+API 自动化测试项目依赖
+# 安装: python -m pip install -r requirements.txt
+# 浏览器: python -m playwright install chromium
+# 注意：项目路径含中文时 pip 可能因编码问题失败，建议 venv 建在纯英文路径
+
+pytest==8.2.0
+pytest-cov
+pytest-rerunfailures>=14.0
+requests
+pyyaml
+pytest-playwright==0.5.0
+playwright==1.63.0
+pytest-base-url
+allure-pytest==2.16.1
